@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+    <title>APRS Passcode Generator</title>
+    <meta name="description" content="This is a web-based tool to generate passcodes for the APRS-IS network with your amateur radio callsign."/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+    <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    new Vue({
+      el: '#container',
+      data: {
+        callsign: "",
+        passcode: ""
+      },
+      methods: {
+        getPasscode() {
+          // 检查 callsign 是否有效
+          if ((/^[a-zA-Z0-9-]+$/).test(this.callsign)) {
+            // 调用 getPass 函数
+            let result = getPass(this.callsign);
+            // 由于 getPass 使用 alert 显示结果，我们改为更新 Vue 的数据
+            // 我们需要稍微修改 getPass 函数以返回结果而不是显示 alert
+            this.passcode = result;
+          } else {
+            this.passcode = "";
+            alert("输入错误");
+            this.callsign = "";
+          }
+        }
+      },
+
+    });
+ 
+    // 将 getPass 函数定义为全局函数，以便在 Vue 方法中调用
+    function getPass(callsign) {
+      // normalize to caps
+      callsign = callsign.toUpperCase();
+ 
+      // remove trailing SSIDs
+      var dashLocation = callsign.indexOf('-');
+      if (dashLocation > 1) {
+        callsign = callsign.slice(0, dashLocation);
+      }
+ 
+      var bytes = callsign.split('');
+      var one, two;
+      var hash = 0x73e2; // seed value -- can't change
+      while (bytes.length) {
+        one = bytes.shift();
+        two = bytes.shift();
+        hash = (hash ^ one.charCodeAt(0) << 8);
+        if (two !== undefined) {
+          hash = (hash ^ two.charCodeAt(0));
+        }
+      }
+      // don't be negative
+      var result = (hash & 0x7fff);
+      return result; // 修改为返回结果而不是显示 alert
+    }
+  });
+</script>
+
+    <style type="text/css">
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        background-color: #cfcbcb;
+      }
+      label {
+        width: 100%;
+        font-weight: bold;
+      }
+      #container {
+        margin: 0 auto;
+        width: 400px;
+        padding: 10px;
+        border: 1px solid #020202;
+        background-color: #ffffffdc;
+      }
+      #passcode {
+        font-size: 16px;
+      }
+    </style>
+
+</head>
+<body>
+
+  <div id="container">
+    <h2>APRS 验证码计算器</h2>
+    <p>用于计算连接APRS-IS的验证码</p>
+    <form  v-on:submit.prevent="getPasscode(callsign)" >
+      <label for="callsign"><b>呼号:</b></label>
+      <input  v-model=callsign type="text" id="callsign" name="callsign">
+      <button  v-on:click="getPasscode(callsign)" type="button">计算</button>
+      <p id="passcode"><b>您的验证码: {{ passcode }}</b></p>
+    </form>
+    <p>Source Code on <a href="https://github.com/BiCffQ/APRS-passcode" title="Github" target="_blank" rel="noopener">Github</a></p>
+  </div>
+
+</body>
+</html>
